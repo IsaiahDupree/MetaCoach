@@ -29,7 +29,18 @@ export default function BusinessCallbackPage() {
           return
         }
 
-        // Store long-lived token with state verification
+        // Verify state matches what we stored
+        const storedState = sessionStorage.getItem('oauth_state')
+        if (!storedState || tokens.state !== storedState) {
+          setError('Invalid state parameter - CSRF check failed')
+          setStatus('error')
+          return
+        }
+
+        // Clear the stored state
+        sessionStorage.removeItem('oauth_state')
+
+        // Store long-lived token
         const response = await fetch('/api/meta/business-login/store-token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -37,7 +48,6 @@ export default function BusinessCallbackPage() {
             accessToken: tokens.accessToken,
             longLivedToken: tokens.longLivedToken,
             expiresIn: tokens.expiresIn,
-            state: tokens.state,
           }),
         })
 

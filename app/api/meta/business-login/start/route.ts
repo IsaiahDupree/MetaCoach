@@ -10,15 +10,29 @@ export async function GET() {
   // Get Business Login URL
   const loginUrl = getBusinessLoginUrl(state)
 
-  // Store state in cookie for verification
-  const response = NextResponse.redirect(loginUrl)
-  response.cookies.set('oauth_state', state, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    path: '/',
-    maxAge: 60 * 10, // 10 minutes
-  })
+  // Return HTML that saves state to sessionStorage, then redirects
+  // This is more reliable than cookies for cross-domain OAuth flows
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <title>Starting login...</title>
+  <script>
+    // Save state to sessionStorage for verification after OAuth
+    sessionStorage.setItem('oauth_state', '${state}');
+    // Redirect to Facebook OAuth
+    window.location.href = '${loginUrl}';
+  </script>
+</head>
+<body>
+  <p>Redirecting to Facebook...</p>
+</body>
+</html>
+`
 
-  return response
+  return new NextResponse(html, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/html',
+    },
+  })
 }

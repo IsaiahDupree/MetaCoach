@@ -1,22 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 // Store long-lived token from Business Login
+// Note: State verification is done client-side using sessionStorage
 export async function POST(req: NextRequest) {
   try {
-    const { longLivedToken, expiresIn, state } = await req.json()
+    const { longLivedToken, expiresIn } = await req.json()
 
     if (!longLivedToken) {
       return NextResponse.json(
         { error: 'Missing long-lived token' },
-        { status: 400 }
-      )
-    }
-
-    // Verify state for CSRF protection
-    const storedState = req.cookies.get('oauth_state')?.value
-    if (!state || !storedState || state !== storedState) {
-      return NextResponse.json(
-        { error: 'Invalid state parameter' },
         { status: 400 }
       )
     }
@@ -32,6 +24,7 @@ export async function POST(req: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
+      path: '/',
       maxAge: expiresIn || 5184000,
     })
     
@@ -39,11 +32,9 @@ export async function POST(req: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
+      path: '/',
       maxAge: expiresIn || 5184000,
     })
-
-    // Clear the state cookie
-    response.cookies.delete('oauth_state')
 
     return response
   } catch (error: any) {
