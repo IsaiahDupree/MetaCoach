@@ -66,10 +66,12 @@ export async function GET(req: NextRequest) {
         'Content-Type': 'text/html',
       },
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Business Login callback error:', error)
+    const errorMessage = error?.message || 'Unknown error'
+    const detailsParam = encodeURIComponent(errorMessage)
     return NextResponse.redirect(
-      new URL('/connect?error=business_login_failed', req.url)
+      new URL(`/connect?error=business_login_failed&details=${detailsParam}`, req.url)
     )
   }
 }

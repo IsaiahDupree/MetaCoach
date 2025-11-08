@@ -3,7 +3,8 @@
 
 export function getBusinessLoginUrl(state: string): string {
   const clientId = process.env.META_APP_ID!
-  const redirectUri = process.env.META_REDIRECT_URL!
+  const baseUrl = process.env.PUBLIC_BASE_URL!
+  const redirectUri = `${baseUrl}/api/meta/business-login/callback`
   
   // Scopes for comprehensive API access
   const scopes = [

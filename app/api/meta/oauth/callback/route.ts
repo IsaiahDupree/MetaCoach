@@ -56,10 +56,12 @@ export async function GET(req: NextRequest) {
     response.cookies.delete('oauth_state')
     
     return response
-  } catch (error) {
+  } catch (error: any) {
     console.error('OAuth callback error:', error)
+    const errorMessage = error?.message || 'Unknown error'
+    const detailsParam = encodeURIComponent(errorMessage)
     return NextResponse.redirect(
-      new URL('/connect?error=callback_failed', req.url)
+      new URL(`/connect?error=callback_failed&details=${detailsParam}`, req.url)
     )
   }
 }

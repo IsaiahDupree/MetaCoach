@@ -1,10 +1,11 @@
 export default async function ConnectPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>
+  searchParams: Promise<{ error?: string; details?: string }>
 }) {
   const params = await searchParams
   const error = params.error
+  const details = params.details
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -18,13 +19,20 @@ export default async function ConnectPage({
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded">
-            <p className="text-sm">
+            <p className="text-sm font-semibold">
               {error === 'invalid_state' && 'Invalid state. Please try again.'}
               {error === 'no_code' && 'No authorization code received.'}
               {error === 'callback_failed' && 'Connection failed. Please try again.'}
               {error === 'tenant_create_failed' && 'Failed to create account.'}
               {error === 'connection_failed' && 'Failed to save connection.'}
+              {error === 'login_canceled' && 'Login was canceled.'}
+              {error === 'business_login_failed' && 'Business login failed.'}
             </p>
+            {details && (
+              <p className="text-xs mt-2 font-mono bg-red-100 p-2 rounded">
+                {decodeURIComponent(details)}
+              </p>
+            )}
           </div>
         )}
 
