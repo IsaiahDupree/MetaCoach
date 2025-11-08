@@ -14,8 +14,7 @@ export async function GET(req: NextRequest) {
     // Business Login returns tokens in URL fragment (#), which is client-side only
     // Server-side redirects lose the fragment, so we return HTML with JavaScript
     // that preserves the fragment and navigates to the callback page
-    const html = `
-<!DOCTYPE html>
+    const html = `<!DOCTYPE html>
 <html>
 <head>
   <title>Completing login...</title>
