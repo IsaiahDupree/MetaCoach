@@ -17,7 +17,14 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify the signed request
-    const [encodedSig, payload] = signedRequest.split('.')
+    const parts = signedRequest.split('.')
+    if (!parts || parts.length !== 2) {
+      return NextResponse.json(
+        { error: 'Malformed signed_request' },
+        { status: 400 }
+      )
+    }
+    const [encodedSig, payload] = parts
     
     const secret = process.env.META_APP_SECRET!
     const expectedSig = createHmac('sha256', secret)
@@ -35,7 +42,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Decode the payload
-    const data = JSON.parse(Buffer.from(payload, 'base64').toString())
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(payload.length / 4) * 4, '=')
+    const data = JSON.parse(Buffer.from(normalized, 'base64').toString())
     const userId = data.user_id
 
     // TODO: Mark user data for deletion
@@ -47,7 +55,8 @@ export async function POST(req: NextRequest) {
     console.log(`Data deletion request for user: ${userId}`)
 
     // Return confirmation URL where user can check deletion status
-    const confirmationUrl = `${process.env.PUBLIC_BASE_URL}/data-deletion?user_id=${userId}`
+    const baseUrl = process.env.PUBLIC_BASE_URL || new URL(req.url).origin
+    const confirmationUrl = `${baseUrl}/data-deletion?user_id=${encodeURIComponent(userId)}`
     const confirmationCode = userId
 
     return NextResponse.json({
@@ -73,3 +82,4 @@ export async function GET(req: NextRequest) {
     status: 'Your data deletion request is being processed and will be completed within 30 days.',
   })
 }
+
