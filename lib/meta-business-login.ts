@@ -42,15 +42,17 @@ export function parseBusinessLoginTokens(fragment: string): {
   longLivedToken: string
   expiresIn: number
   dataAccessExpirationTime: number
+  state: string | null
 } | null {
   try {
-    // Fragment format: #access_token=...&data_access_expiration_time=...&expires_in=...&long_lived_token=...
+    // Fragment format: #access_token=...&data_access_expiration_time=...&expires_in=...&long_lived_token=...&state=...
     const params = new URLSearchParams(fragment.replace('#', ''))
     
     const accessToken = params.get('access_token')
     const longLivedToken = params.get('long_lived_token')
     const expiresIn = params.get('expires_in')
     const dataAccessExpirationTime = params.get('data_access_expiration_time')
+    const state = params.get('state')
 
     if (!accessToken || !longLivedToken || !expiresIn) {
       return null
@@ -63,6 +65,7 @@ export function parseBusinessLoginTokens(fragment: string): {
       dataAccessExpirationTime: dataAccessExpirationTime 
         ? parseInt(dataAccessExpirationTime) 
         : 0,
+      state,
     }
   } catch (error) {
     console.error('Error parsing Business Login tokens:', error)

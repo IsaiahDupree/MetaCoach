@@ -29,7 +29,7 @@ export default function BusinessCallbackPage() {
           return
         }
 
-        // Store long-lived token
+        // Store long-lived token with state verification
         const response = await fetch('/api/meta/business-login/store-token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -37,11 +37,13 @@ export default function BusinessCallbackPage() {
             accessToken: tokens.accessToken,
             longLivedToken: tokens.longLivedToken,
             expiresIn: tokens.expiresIn,
+            state: tokens.state,
           }),
         })
 
         if (!response.ok) {
-          throw new Error('Failed to store token')
+          const data = await response.json()
+          throw new Error(data.error || 'Failed to store token')
         }
 
         setStatus('success')
