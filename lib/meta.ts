@@ -48,6 +48,17 @@ export class MetaClient {
     return response.data.instagram_business_account?.id
   }
 
+  // Get user's Facebook Pages
+  async getPages(): Promise<Array<{ id: string; name: string; access_token?: string }>> {
+    const response = await axios.get(`${META_GRAPH_URL}/me/accounts`, {
+      params: {
+        access_token: this.accessToken,
+        fields: 'id,name,access_token',
+      },
+    })
+    return response.data.data || []
+  }
+
   // Get user's Instagram media (posts)
   async getMedia(igUserId: string, limit = 25): Promise<InstagramMedia[]> {
     const response = await axios.get(`${META_GRAPH_URL}/${igUserId}/media`, {
