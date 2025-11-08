@@ -1,0 +1,13 @@
+{
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "regions": ["iad1"],
+  "env": {
+    "META_APP_ID": "@meta_app_id",
+    "META_APP_SECRET": "@meta_app_secret",
+    "META_REDIRECT_URL": "@meta_redirect_url",
+    "PUBLIC_BASE_URL": "@public_base_url"
+  }
+}
