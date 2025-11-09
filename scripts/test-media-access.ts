@@ -10,11 +10,15 @@
  * 3. Test AI analysis pipeline
  */
 
+// Load environment variables from .env.local
+import dotenv from 'dotenv'
+import path from 'path'
+import fs from 'fs/promises'
+dotenv.config({ path: path.resolve(process.cwd(), '.env.local') })
+
 import { MetaClient } from '../lib/meta'
 import { downloadMediaWithMetadata, isMediaDownloadable } from '../lib/instagram-media'
 import { analyzeContent } from '../lib/ai-analysis'
-import fs from 'fs/promises'
-import path from 'path'
 
 async function testMediaAccess() {
   console.log('=== MetaCoach Media Access Test ===\n')

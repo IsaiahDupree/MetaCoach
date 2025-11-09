@@ -1,11 +1,20 @@
 import OpenAI from 'openai'
 
-if (!process.env.OPENAI_API_KEY) {
-  throw new Error('Missing env.OPENAI_API_KEY')
-}
+// Lazy initialization to allow environment variables to load first
+let _openai: OpenAI | null = null
 
-export const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+export const openai = new Proxy({} as OpenAI, {
+  get(target, prop) {
+    if (!_openai) {
+      if (!process.env.OPENAI_API_KEY) {
+        throw new Error('Missing env.OPENAI_API_KEY')
+      }
+      _openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+      })
+    }
+    return (_openai as any)[prop]
+  }
 })
 
 // Cost tracking helper
