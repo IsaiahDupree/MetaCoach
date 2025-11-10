@@ -82,23 +82,43 @@ async function testMediaAccess() {
       process.exit(0)
     }
 
+    // Fetch engagement metrics for each media
+    console.log('📊 Fetching engagement metrics...')
+    const mediaWithInsights = await Promise.all(
+      media.map(async (m) => {
+        try {
+          const insights = await client.getMediaInsights(m.id)
+          return { ...m, insights }
+        } catch (error) {
+          return { ...m, insights: {} }
+        }
+      })
+    )
+    console.log('✅ Engagement data loaded\n')
+
     // Display media summary
     console.log('📊 Media Summary:')
-    media.forEach((m, i) => {
+    mediaWithInsights.forEach((m, i) => {
       const downloadable = isMediaDownloadable(m) ? '✅' : '❌'
-      console.log(`  ${i + 1}. ${m.media_type} ${downloadable} ${m.caption?.substring(0, 50) || 'No caption'}...`)
+      const likes = m.insights?.likes || 0
+      const comments = m.insights?.comments || 0
+      const shares = m.insights?.shares || 0
+      const saved = m.insights?.saved || 0
+      const reach = m.insights?.reach || 0
+      console.log(`  ${i + 1}. ${m.media_type} ${downloadable} | 👥 ${reach} ❤️ ${likes} 💬 ${comments} 🔄 ${shares} 🔖 ${saved}`)
+      console.log(`      ${m.caption?.substring(0, 60) || 'No caption'}...`)
     })
     console.log()
 
     // 5. Find a downloadable video
     console.log('🔍 Looking for a downloadable video...')
-    const videoMedia = media.find((m) => m.media_type === 'VIDEO' && isMediaDownloadable(m))
+    const videoMedia = mediaWithInsights.find((m) => m.media_type === 'VIDEO' && isMediaDownloadable(m))
     
     if (!videoMedia) {
       console.log('⚠️ No downloadable video found')
       console.log('Trying with an image instead...')
       
-      const imageMedia = media.find((m) => m.media_type === 'IMAGE' && isMediaDownloadable(m))
+      const imageMedia = mediaWithInsights.find((m) => m.media_type === 'IMAGE' && isMediaDownloadable(m))
       if (!imageMedia) {
         console.log('⚠️ No downloadable media found')
         console.log('This might mean:')
@@ -108,11 +128,11 @@ async function testMediaAccess() {
         process.exit(0)
       }
 
-      await testWithImage(imageMedia)
+      await testWithImage(imageMedia, client)
       return
     }
 
-    await testWithVideo(videoMedia)
+    await testWithVideo(videoMedia, client)
 
   } catch (error: any) {
     console.error('❌ Error:', error.message)
@@ -123,10 +143,23 @@ async function testMediaAccess() {
   }
 }
 
-async function testWithVideo(media: any) {
+async function testWithVideo(media: any, client: MetaClient) {
   console.log(`✅ Found video: ${media.id}`)
   console.log(`   Caption: ${media.caption?.substring(0, 100) || 'No caption'}...`)
   console.log(`   URL: ${media.media_url?.substring(0, 50)}...`)
+  
+  // Display engagement metrics
+  if (media.insights) {
+    console.log(`\n📊 Engagement Metrics:`)
+    console.log(`   👥 Reach: ${media.insights.reach || 0}`)
+    console.log(`   ❤️ Likes: ${media.insights.likes || 0}`)
+    console.log(`   💬 Comments: ${media.insights.comments || 0}`)
+    console.log(`   🔄 Shares: ${media.insights.shares || 0}`)
+    console.log(`   🔖 Saved: ${media.insights.saved || 0}`)
+    if (media.insights.video_views) {
+      console.log(`   📹 Views: ${media.insights.video_views}`)
+    }
+  }
   console.log()
 
   // 6. Download video
@@ -173,9 +206,19 @@ async function testWithVideo(media: any) {
         console.log()
       }
 
-      // Save full analysis
+      // Save full analysis with engagement metrics
+      const fullAnalysis = {
+        ...analysis,
+        engagement: media.insights || {},
+        metadata: {
+          ...metadata,
+          media_id: media.id,
+          caption: media.caption,
+          posted_at: media.timestamp
+        }
+      }
       const analysisPath = path.join(outputPath, `analysis-${media.id}.json`)
-      await fs.writeFile(analysisPath, JSON.stringify(analysis, null, 2))
+      await fs.writeFile(analysisPath, JSON.stringify(fullAnalysis, null, 2))
       console.log(`💾 Full analysis saved to: ${analysisPath}`)
 
     } catch (error: any) {
@@ -192,9 +235,19 @@ async function testWithVideo(media: any) {
   console.log('\n✅ Test completed successfully! 🎉')
 }
 
-async function testWithImage(media: any) {
+async function testWithImage(media: any, client: MetaClient) {
   console.log(`✅ Found image: ${media.id}`)
   console.log(`   Caption: ${media.caption?.substring(0, 100) || 'No caption'}...`)
+  
+  // Display engagement metrics
+  if (media.insights) {
+    console.log(`\n📊 Engagement Metrics:`)
+    console.log(`   👥 Reach: ${media.insights.reach || 0}`)
+    console.log(`   ❤️ Likes: ${media.insights.likes || 0}`)
+    console.log(`   💬 Comments: ${media.insights.comments || 0}`)
+    console.log(`   🔄 Shares: ${media.insights.shares || 0}`)
+    console.log(`   🔖 Saved: ${media.insights.saved || 0}`)
+  }
   console.log()
 
   // Download image
@@ -227,9 +280,19 @@ async function testWithImage(media: any) {
         console.log()
       }
 
-      // Save analysis
+      // Save analysis with engagement metrics
+      const fullAnalysis = {
+        ...analysis,
+        engagement: media.insights || {},
+        metadata: {
+          ...metadata,
+          media_id: media.id,
+          caption: media.caption,
+          posted_at: media.timestamp
+        }
+      }
       const analysisPath = path.join(outputPath, `analysis-${media.id}.json`)
-      await fs.writeFile(analysisPath, JSON.stringify(analysis, null, 2))
+      await fs.writeFile(analysisPath, JSON.stringify(fullAnalysis, null, 2))
       console.log(`💾 Full analysis saved to: ${analysisPath}`)
 
     } catch (error: any) {
