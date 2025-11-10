@@ -126,7 +126,9 @@ export async function generateTranscript(
   try {
     // Create a File-like object for OpenAI
     // Convert Buffer to Blob then to File
-    const blob = new Blob([videoBuffer], { type: 'video/mp4' })
+    // Need to convert Buffer to Uint8Array for proper Blob construction
+    const uint8Array = new Uint8Array(videoBuffer)
+    const blob = new Blob([uint8Array], { type: 'video/mp4' })
     const file = new File([blob], 'video.mp4', { type: 'video/mp4' })
 
     const transcription = await openai.audio.transcriptions.create({
