@@ -10,15 +10,17 @@ export async function GET() {
   // Get Business Login URL
   const loginUrl = getBusinessLoginUrl(state)
 
-  // Return HTML that saves state to sessionStorage, then redirects
-  // This is more reliable than cookies for cross-domain OAuth flows
+  // Return HTML that saves state to both sessionStorage AND localStorage
+  // localStorage persists better across OAuth redirects
   const html = `<!DOCTYPE html>
 <html>
 <head>
   <title>Starting login...</title>
   <script>
-    // Save state to sessionStorage for verification after OAuth
+    // Save state to both storages for reliability
     sessionStorage.setItem('oauth_state', '${state}');
+    localStorage.setItem('oauth_state', '${state}');
+    localStorage.setItem('oauth_state_timestamp', Date.now().toString());
     // Redirect to Facebook OAuth
     window.location.href = '${loginUrl}';
   </script>

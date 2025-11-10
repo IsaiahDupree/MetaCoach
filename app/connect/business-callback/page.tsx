@@ -15,30 +15,67 @@ export default function BusinessCallbackPage() {
         // Parse tokens from URL fragment
         const fragment = window.location.hash
         
+        console.log('[Business Login] Processing callback...')
+        console.log('[Business Login] Fragment present:', !!fragment)
+        
         if (!fragment) {
-          setError('No tokens received')
+          setError('No tokens received from Facebook. Please try again.')
           setStatus('error')
           return
         }
 
         const tokens = parseBusinessLoginTokens(fragment)
         
+        console.log('[Business Login] Tokens parsed:', !!tokens)
+        console.log('[Business Login] Has state in token:', !!tokens?.state)
+        
         if (!tokens) {
-          setError('Failed to parse tokens')
+          setError('Failed to parse authentication tokens. Please try again.')
           setStatus('error')
           return
         }
 
         // Verify state matches what we stored
-        const storedState = sessionStorage.getItem('oauth_state')
+        // Try sessionStorage first, fallback to localStorage
+        let storedState = sessionStorage.getItem('oauth_state')
+        let stateSource = 'sessionStorage'
+        
+        if (!storedState) {
+          storedState = localStorage.getItem('oauth_state')
+          stateSource = 'localStorage'
+          
+          // Check if state is not too old (max 10 minutes)
+          const timestamp = localStorage.getItem('oauth_state_timestamp')
+          if (timestamp) {
+            const age = Date.now() - parseInt(timestamp)
+            console.log('[Business Login] State age:', age, 'ms')
+            if (age > 600000) { // 10 minutes in ms
+              console.warn('[Business Login] Stored state is too old')
+              storedState = null
+            }
+          }
+        }
+        
+        console.log('[Business Login] State source:', stateSource)
+        console.log('[Business Login] State found:', !!storedState)
+        
         if (!storedState || tokens.state !== storedState) {
-          setError('Invalid state parameter - CSRF check failed')
+          console.error('[Business Login] CSRF check failed:', {
+            hasStoredState: !!storedState,
+            hasTokenState: !!tokens.state,
+            statesMatch: storedState === tokens.state
+          })
+          setError('Security verification failed. Please clear your browser cache and try again.')
           setStatus('error')
           return
         }
+        
+        console.log('[Business Login] CSRF check passed ✓')
 
-        // Clear the stored state
+        // Clear the stored state from both storages
         sessionStorage.removeItem('oauth_state')
+        localStorage.removeItem('oauth_state')
+        localStorage.removeItem('oauth_state_timestamp')
 
         // Store long-lived token
         const response = await fetch('/api/meta/business-login/store-token', {
