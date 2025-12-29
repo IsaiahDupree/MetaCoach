@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --port ${PORT:-4545}",
     "build": "next build",
-    "start": "next start",
+    "start": "next start --port ${PORT:-4545}",
     "lint": "eslint",
     "test-media": "tsx scripts/test-media-access.ts"
   },
@@ -16,10 +16,10 @@
     "clsx": "^2.1.1",
     "lucide-react": "^0.552.0",
     "nanoid": "^5.1.6",
-    "next": "16.0.1",
+    "next": "^16.1.1",
     "openai": "^6.7.0",
-    "react": "19.2.0",
-    "react-dom": "19.2.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
     "rrule": "^2.8.1",
     "tailwind-merge": "^3.3.1"
   },

@@ -41,7 +41,7 @@ async function testMediaAccess() {
     console.error('META_ACCESS_TOKEN=your_token_here\n')
     console.error('Get a token by:')
     console.error('1. Running the app: npm run dev')
-    console.error('2. Going to http://localhost:3000/connect')
+    console.error(`2. Going to ${process.env.PUBLIC_BASE_URL || 'http://localhost:4545'}/connect`)
     console.error('3. Completing OAuth flow')
     console.error('4. Copying the token from cookies (meta_access_token)')
     process.exit(1)
