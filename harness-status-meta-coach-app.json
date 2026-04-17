@@ -1,0 +1,16 @@
+{
+  "projectId": "meta-coach-app",
+  "projectRoot": "/Users/isaiahdupree/Documents/Software/MetaCoach",
+  "lastUpdated": "2026-04-17T07:53:56.068Z",
+  "sessionType": "CODING",
+  "status": "running",
+  "stats": {
+    "total": 52,
+    "passing": 0,
+    "pending": 52,
+    "percentComplete": "0.0"
+  },
+  "pid": 49242,
+  "currentSession": 1,
+  "model": "claude-haiku-4-5-20251001"
+}
