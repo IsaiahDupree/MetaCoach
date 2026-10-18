@@ -1,0 +1,12 @@
+{
+  "supplements_snapshot": "3df8b70d7f754262-r2",
+  "source_roots": [
+    "C:/Users/Isaia/Documents/Coding/MetaCoach"
+  ],
+  "files": {
+    "app/api/meta/media/route.ts": {
+      "source": "C:\\Users\\Isaia\\Documents\\Coding\\MetaCoach\\app\\api\\meta\\media\\route.ts",
+      "reason": "portable authored code absent from staged source selection"
+    }
+  }
+}
