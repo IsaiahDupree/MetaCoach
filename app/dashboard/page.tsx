@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { BarChart3, TrendingUp, AlertCircle } from 'lucide-react'
 import { formatNumber } from '@/lib/utils'
 import { RecommendationModal } from '@/components/RecommendationModal'
-import { PerformanceChart, type PerformanceData } from '@/components/PerformanceChart'
 
 interface Account {
   id: string
@@ -50,7 +49,6 @@ export default function DashboardPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [metrics, setMetrics] = useState<MetricSummary | null>(null)
   const [recommendations, setRecommendations] = useState<Recommendation[]>([])
-  const [performanceData, setPerformanceData] = useState<PerformanceData[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [period, setPeriod] = useState<'7d' | '30d' | '90d'>('30d')
@@ -68,8 +66,8 @@ export default function DashboardPage() {
           setAccounts(data.accounts)
           setSelectedAccount(data.accounts[0])
         }
-      } catch (err: any) {
-        setError(err.message)
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Failed to load accounts')
       }
     }
     fetchAccounts()
@@ -119,21 +117,7 @@ export default function DashboardPage() {
           setRecommendations(recsData.recommendations || [])
         }
 
-        // Generate sample performance data for the chart
-        const data: PerformanceData[] = []
-        for (let i = daysBack; i >= 0; i--) {
-          const date = new Date()
-          date.setDate(date.getDate() - i)
-          data.push({
-            date: date.toISOString().split('T')[0],
-            spend: Math.random() * 500 + 100,
-            conversions: Math.floor(Math.random() * 50 + 10),
-            impressions: Math.floor(Math.random() * 10000 + 5000),
-            clicks: Math.floor(Math.random() * 500 + 100),
-          })
-        }
-        setPerformanceData(data)
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error fetching data:', err)
       } finally {
         setLoading(false)
@@ -284,16 +268,9 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {/* Performance Chart */}
-            {performanceData.length > 0 && (
-              <div className="mb-8">
-                <PerformanceChart
-                  data={performanceData}
-                  timeframe={period}
-                  onTimeframeChange={setPeriod}
-                />
-              </div>
-            )}
+            <div className="mb-8 rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900">
+              Daily performance charts are not available in the current build. Dashboard data availability depends on account access and the current application build.
+            </div>
 
             {/* Campaigns Table */}
             <div className="bg-white rounded-lg shadow mb-8">

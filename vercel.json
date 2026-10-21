@@ -16,16 +16,9 @@
   },
   "git": {
     "deploymentEnabled": {
-      "main": true
+      "master": true
     }
   },
-  "redirects": [
-    {
-      "source": "/",
-      "destination": "/dashboard",
-      "permanent": false
-    }
-  ],
   "headers": [
     {
       "source": "/api/health",
