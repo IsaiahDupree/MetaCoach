@@ -1,31 +1,14 @@
 {
   "buildCommand": "npm run build",
-  "installCommand": "npm install",
+  "installCommand": "npm install --legacy-peer-deps",
   "framework": "nextjs",
   "outputDirectory": ".next",
   "devCommand": "npm run dev",
-  "env": {
-    "NEXT_PUBLIC_SUPABASE_URL": "@next_public_supabase_url",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@next_public_supabase_anon_key",
-    "SUPABASE_SERVICE_ROLE_KEY": "@supabase_service_role_key",
-    "SUPABASE_JWT_SECRET": "@supabase_jwt_secret",
-    "META_APP_ID": "@meta_app_id",
-    "META_APP_SECRET": "@meta_app_secret",
-    "META_REDIRECT_URL": "@meta_redirect_url",
-    "PUBLIC_BASE_URL": "@public_base_url"
-  },
   "git": {
     "deploymentEnabled": {
-      "main": true
+      "master": true
     }
   },
-  "redirects": [
-    {
-      "source": "/",
-      "destination": "/dashboard",
-      "permanent": false
-    }
-  ],
   "headers": [
     {
       "source": "/api/health",

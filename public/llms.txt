@@ -1,0 +1,15 @@
+# MatrixLoop
+
+> MatrixLoop is an early-stage workspace for connecting Meta advertising accounts and reviewing campaigns, performance metrics, and account recommendations.
+
+## Public page
+
+- https://matrixloop.app/: Product overview and account connection entry point.
+
+## Product scope
+
+The application currently provides a Meta account connection flow and a dashboard interface for account, campaign, reporting metric, and recommendation data. Availability depends on the connected account and current application build. Verify metrics in Meta Ads Manager before making spending decisions.
+
+## Access
+
+The dashboard and account connection flow are interactive application routes and are excluded from the public sitemap. The public overview is the canonical page.
