@@ -3,7 +3,7 @@ import type { MetadataRoute } from 'next'
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {
-      url: 'https://matrixloop.app/',
+      url: 'https://www.matrixloop.app/',
       changeFrequency: 'monthly',
       priority: 1,
     },

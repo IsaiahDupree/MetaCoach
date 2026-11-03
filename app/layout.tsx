@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import PortfolioAnalyticsScript from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -13,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://matrixloop.app"),
+  metadataBase: new URL("https://www.matrixloop.app"),
   title: {
     default: "MatrixLoop | Meta Advertising Performance Workspace",
     template: "%s | MatrixLoop",
@@ -21,10 +22,10 @@ export const metadata: Metadata = {
   description:
     "MatrixLoop is an early-stage workspace for connecting Meta advertising accounts and reviewing campaigns, performance metrics, and account recommendations.",
   applicationName: "MatrixLoop",
-  alternates: { canonical: "/" },
+  alternates: { canonical: "https://www.matrixloop.app/" },
   openGraph: {
     type: "website",
-    url: "https://matrixloop.app/",
+    url: "https://www.matrixloop.app/",
     siteName: "MatrixLoop",
     title: "MatrixLoop | Meta Advertising Performance Workspace",
     description:
@@ -54,6 +55,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        <PortfolioAnalyticsScript id="portfolio-analytics-v1" src="https://isaiahdupreeapps.com/assets/portfolio-analytics-v1.js" data-site="matrixloop-app" strategy="afterInteractive" />
       </body>
     </html>
   );

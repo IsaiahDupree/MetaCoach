@@ -2,7 +2,7 @@ import Link from 'next/link'
 
 const product = {
   name: 'MatrixLoop',
-  url: 'https://matrixloop.app',
+  url: 'https://www.matrixloop.app',
   description:
     'An early-stage workspace for connecting Meta advertising accounts and reviewing campaign performance.',
 }
