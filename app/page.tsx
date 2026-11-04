@@ -81,6 +81,7 @@ export default function Home() {
       <footer className="mx-auto flex max-w-6xl flex-col gap-3 px-6 py-8 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
         <span>MatrixLoop · Meta advertising performance workspace</span>
         <Link href="/connect" className="font-medium text-blue-700 hover:underline">Connect an account</Link>
+      <a href="/learn">Guides and practical articles</a>
       </footer>
     </main>
   )

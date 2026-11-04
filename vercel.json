@@ -19,5 +19,15 @@
         }
       ]
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/learn",
+      "destination": "https://authority-os-iota.vercel.app/api/editorial/public/matrixloop"
+    },
+    {
+      "source": "/learn/:path*",
+      "destination": "https://authority-os-iota.vercel.app/api/editorial/public/matrixloop/:path*"
+    }
   ]
 }

@@ -4,7 +4,7 @@ export default function robots(): MetadataRoute.Robots {
   return {
     // Let crawlers fetch app routes so their page-level noindex metadata is seen.
     rules: [{ userAgent: '*', allow: '/', disallow: ['/api/'] }],
-    sitemap: 'https://www.matrixloop.app/sitemap.xml',
+    sitemap: ['https://www.matrixloop.app/sitemap.xml', 'https://www.matrixloop.app/learn/sitemap.xml'],
     host: 'https://www.matrixloop.app',
   }
 }
