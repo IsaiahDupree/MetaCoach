@@ -32,13 +32,14 @@ export class RecommendationEngine {
    * Generate recommendations for an ad account
    */
   async generateRecommendations(accountId: string): Promise<Recommendation[]> {
+    if (!accountId) throw new Error('Account ID is required')
     const recommendations: Recommendation[] = []
 
     // Get ad performance data for the last 30 days
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
-    const { data: metrics } = await this.supabase
+    const { data: metrics, error } = await this.supabase
       .from('meta_ad_performance')
       .select(
         `
@@ -53,16 +54,19 @@ export class RecommendationEngine {
         cpc,
         cpa,
         roas,
-        meta_ads(
+        meta_ads!inner(
           id,
           meta_ad_set_id,
-          meta_ad_sets(
+          meta_ad_sets!inner(
             meta_account_id
           )
         )
       `
       )
       .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
+      .eq('meta_ads.meta_ad_sets.meta_account_id', accountId)
+
+    if (error) throw new Error(`Failed to load account performance: ${error.message}`)
 
     if (!metrics || metrics.length === 0) {
       return recommendations
@@ -73,7 +77,7 @@ export class RecommendationEngine {
     recommendations.push(...this.generateCreativeRecommendations(metrics))
     recommendations.push(...this.generateAudienceRecommendations(metrics))
 
-    return recommendations
+    return recommendations.map((recommendation) => ({ ...recommendation, meta_account_id: accountId }))
   }
 
   /**

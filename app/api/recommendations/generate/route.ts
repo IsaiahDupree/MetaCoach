@@ -61,6 +61,10 @@ const handler = async (req: NextRequest & { userId?: string }) => {
 
       if (insertError) {
         console.error('Error storing recommendations:', insertError)
+        return NextResponse.json(
+          { error: 'Failed to store recommendations' },
+          { status: 500 }
+        )
       }
     }
 

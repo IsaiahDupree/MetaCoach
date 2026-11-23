@@ -21,8 +21,17 @@ matches the legacy symmetric-key design already in this source; projects using
 asymmetric signing keys require a separately verified JWKS/getClaims design.
 The existing browser login sets an `auth_token` cookie but this middleware only
 accepts a bearer header. Reconcile the entire session/CSRF flow before use;
-this change does not fix session revocation, all routes, account isolation or
-the recommendation engine's account filtering.
+this change does not fix session revocation, all routes or account isolation
+across the entire application.
+
+Recommendation generation checks account ownership in its route and now
+filters performance through inner ad/ad-set relationships to the requested
+account before using the privileged client. It associates returned results
+with that account and treats database read or insert failure as an error. A
+local PostgreSQL/PostgREST test exercises two account owners and rejects
+cross-account access. The test schema is inferred from the source; the checked
+in migration does not create the ad tables. Verify the deployed relationships,
+grants, RLS and all other recommendation consumers before relying on this fix.
 
 Dashboard contracts also need repair: its account caller expects `accounts`
 while the inspected endpoint returns `data`; it calls the bulk fetch route on
