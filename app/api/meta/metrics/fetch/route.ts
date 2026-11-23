@@ -2,10 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { createProtectedRoute } from '@/lib/auth-middleware'
 import axios from 'axios'
+import { boundedMap } from '@/lib/bounded-map'
 
 const META_GRAPH_URL = 'https://graph.facebook.com/v21.0'
 
 const handler = async (req: NextRequest & { userId?: string }) => {
+  if (process.env.METACOACH_META_SYNC_ENABLED !== '1') {
+    return NextResponse.json({ error: 'Live Meta sync is disabled' }, { status: 503 })
+  }
   try {
     if (!req.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -95,7 +99,7 @@ const handler = async (req: NextRequest & { userId?: string }) => {
     }
 
     // Fetch metrics from Meta API for each ad
-    const metricsPromises = ads.map(async (ad: any) => {
+    const metricsArrays = await boundedMap(ads, 3, async (ad: any) => {
       try {
         const response = await axios.get(
           `${META_GRAPH_URL}/${ad.id}/insights`,
@@ -112,22 +116,19 @@ const handler = async (req: NextRequest & { userId?: string }) => {
           }
         )
 
-        return response.data.data || []
+        return (response.data.data || []).map((metric: any) => ({ metric, adId: ad.id }))
       } catch (error) {
-        console.error(`Error fetching metrics for ad ${ad.id}:`, error)
+        console.error(`Error fetching metrics for ad ${ad.id}`)
         return []
       }
     })
 
-    const metricsArrays = await Promise.all(metricsPromises)
     const allMetrics = metricsArrays.flat()
 
     // Transform and store metrics in database
     const metricsToInsert = allMetrics
-      .filter((metric: any) => metric.date_start)
-      .map((metric: any) => {
-        // Find which ad this metric belongs to
-        const adId = ads[allMetrics.indexOf(metric)]?.id
+      .filter(({ metric }: any) => metric.date_start)
+      .map(({ metric, adId }: any) => {
 
         // Calculate derived metrics
         const impressions = parseInt(metric.impressions) || 0

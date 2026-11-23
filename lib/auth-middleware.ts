@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify } from 'jose'
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.SUPABASE_JWT_SECRET || 'your-secret-key'
-)
-
 interface AuthPayload {
   sub: string
   aud: string
@@ -28,9 +24,15 @@ export async function verifyAuth(req: NextRequest): Promise<{
   error?: string
 }> {
   try {
+    const secret = process.env.SUPABASE_JWT_SECRET
+    const projectUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/+$/, '')
+    if (!secret || secret.length < 32 || !projectUrl) {
+      return { authenticated: false, error: 'Authentication is not configured' }
+    }
+
     // Get token from header or cookie
     const authHeader = req.headers.get('authorization')
-    const token = authHeader?.replace('Bearer ', '')
+    const token = authHeader?.match(/^Bearer\s+(\S+)$/i)?.[1]
 
     if (!token) {
       return {
@@ -40,8 +42,17 @@ export async function verifyAuth(req: NextRequest): Promise<{
     }
 
     // Verify JWT token
-    const verified = await jwtVerify(token, JWT_SECRET)
+    const verified = await jwtVerify(token, new TextEncoder().encode(secret), {
+      algorithms: ['HS256'],
+      requiredClaims: ['sub', 'exp'],
+      issuer: `${projectUrl}/auth/v1`,
+      audience: 'authenticated',
+    })
     const payload = verified.payload as AuthPayload
+
+    if (typeof payload.sub !== 'string' || !payload.sub || payload.role !== 'authenticated') {
+      return { authenticated: false, error: 'Invalid user claims' }
+    }
 
     // Check if token is expired
     const now = Math.floor(Date.now() / 1000)

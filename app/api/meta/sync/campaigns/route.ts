@@ -4,6 +4,9 @@ import { createProtectedRoute } from '@/lib/auth-middleware'
 import { MetaClient } from '@/lib/meta'
 
 const handler = async (req: NextRequest & { userId?: string }) => {
+  if (process.env.METACOACH_META_SYNC_ENABLED !== '1') {
+    return NextResponse.json({ error: 'Live Meta sync is disabled' }, { status: 503 })
+  }
   try {
     if (!req.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
