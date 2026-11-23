@@ -35,7 +35,8 @@ with tempfile.TemporaryDirectory(prefix='matrix-rec-', dir='/tmp') as tmp:
         sql = """
         CREATE ROLE matrix_test_reader NOLOGIN; GRANT matrix_test_reader TO matrix_test_owner;
         CREATE TABLE meta_accounts (id text PRIMARY KEY, user_id text NOT NULL, account_name text,
-          account_currency text, account_timezone text, is_active boolean NOT NULL DEFAULT true);
+          account_currency text, account_timezone text, access_token text, token_expires_at timestamptz,
+          is_active boolean NOT NULL DEFAULT true);
         CREATE TABLE meta_ad_sets (id text PRIMARY KEY, meta_account_id text NOT NULL REFERENCES meta_accounts(id));
         CREATE TABLE meta_ads (id text PRIMARY KEY, meta_ad_set_id text NOT NULL REFERENCES meta_ad_sets(id));
         CREATE TABLE meta_ad_performance (meta_ad_id text NOT NULL REFERENCES meta_ads(id), date date NOT NULL,
@@ -49,6 +50,7 @@ with tempfile.TemporaryDirectory(prefix='matrix-rec-', dir='/tmp') as tmp:
           campaign_name text, campaign_status text, campaign_objective text);
         INSERT INTO meta_accounts (id,user_id,account_name,account_currency) VALUES
           ('account-a','user-a','Account A','USD'),('account-b','user-b','Account B','EUR'),('account-c','user-a','Account C','USD'),('account-d','user-a','Account D','USD');
+        UPDATE meta_accounts SET access_token='local-original' WHERE id='account-a';
         INSERT INTO campaigns VALUES ('campaign-a','account-a','A campaign','ACTIVE','SALES'),
           ('campaign-b','account-b','B campaign','PAUSED','SALES');
         INSERT INTO meta_ad_sets VALUES ('set-a','account-a'),('set-b','account-b'),('set-d','account-d');
@@ -58,7 +60,7 @@ with tempfile.TemporaryDirectory(prefix='matrix-rec-', dir='/tmp') as tmp:
           ('ad-b', CURRENT_DATE, 1000,2,900,1,90,.2,450,900,.1);
         INSERT INTO meta_ad_performance SELECT 'ad-d', CURRENT_DATE, 1, 1, 1, 1, 1, 1, 1, 1, 1 FROM generate_series(1,1001);
         GRANT USAGE ON SCHEMA public TO matrix_test_reader;
-        GRANT SELECT,INSERT ON ALL TABLES IN SCHEMA public TO matrix_test_reader;
+        GRANT SELECT,INSERT,UPDATE ON ALL TABLES IN SCHEMA public TO matrix_test_reader;
         GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA public TO matrix_test_reader;
         """
         psql = [str(PG/'psql'), '-h', '127.0.0.1', '-p', str(pgport), '-U', 'matrix_test_owner', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1']
@@ -77,6 +79,7 @@ with tempfile.TemporaryDirectory(prefix='matrix-rec-', dir='/tmp') as tmp:
         class Proxy(BaseHTTPRequestHandler):
             def do_GET(self): self.forward()
             def do_POST(self): self.forward()
+            def do_PATCH(self): self.forward()
             def forward(self):
                 if not self.path.startswith('/rest/v1/'): self.send_error(404); return
                 data = self.rfile.read(int(self.headers.get('Content-Length', '0'))) or None
@@ -105,6 +108,9 @@ with tempfile.TemporaryDirectory(prefix='matrix-rec-', dir='/tmp') as tmp:
         print('PASS: generated recommendations stored for both distinct local accounts')
         dashboard = command[:-1] + ['tests/local-dashboard.mts']
         result = run(dashboard, cwd=ROOT, env=env)
+        print(result.stdout.strip())
+        oauth = command[:-1] + ['tests/local-oauth.mts']
+        result = run(oauth, cwd=ROOT, env={**env, 'PUBLIC_BASE_URL': 'http://localhost:4545', 'META_APP_ID': 'local-test-app'})
         print(result.stdout.strip())
         run(psql + ['-c', 'REVOKE SELECT ON meta_ad_performance FROM matrix_test_reader'])
         result = run(command, cwd=ROOT, env={**env, 'EXPECT_STORAGE_ERROR': '1'})

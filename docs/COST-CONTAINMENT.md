@@ -48,3 +48,20 @@ summary semantics, access controls, time zones and rendered application before
 relying on this candidate. A separate authorized owned-hardware execution plan
 is needed for live sync. OAuth, OpenAI, other Meta fan-out, account status,
 other callers and EverReach integrations require separate review.
+
+The standard and business connection entry points and token handling are now
+default off behind `METACOACH_META_OAUTH_ENABLED=1`; the setting is a guard,
+not permission to call a cloud service or a budget cap. The standard callback
+checks the signed-in session and OAuth state before token exchange, and saves
+ad accounts only for that same user without overwriting an existing account
+owned by another user. Save operations across multiple accounts are not one
+transaction and may partially complete if a later account fails. Business
+token storage requires a signed-in same-origin request plus state checked
+against an HttpOnly cookie. It stores a browser token only; it does not link
+saved ad accounts to the dashboard. Its client now says that explicitly.
+
+Actual Meta OAuth exchanges, permissions, provider token validity, browser
+redirects, storage semantics, existing client compatibility and the deployed
+account schema remain unverified. OAuth cannot be considered restored until
+those paths and a separately authorized execution plan are verified. Preserve
+the existing Meta app registrations and callbacks.

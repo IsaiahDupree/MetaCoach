@@ -21,6 +21,7 @@ export default async function ConnectPage({
           <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded">
             <p className="text-sm font-semibold">
               {error === 'invalid_state' && 'Invalid state. Please try again.'}
+              {error === 'authentication_required' && 'Sign in before connecting an account.'}
               {error === 'no_code' && 'No authorization code received.'}
               {error === 'callback_failed' && 'Connection failed. Please try again.'}
               {error === 'tenant_create_failed' && 'Failed to create account.'}

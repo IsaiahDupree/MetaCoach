@@ -72,11 +72,6 @@ export default function BusinessCallbackPage() {
         
         console.log('[Business Login] CSRF check passed ✓')
 
-        // Clear the stored state from both storages
-        sessionStorage.removeItem('oauth_state')
-        localStorage.removeItem('oauth_state')
-        localStorage.removeItem('oauth_state_timestamp')
-
         // Store long-lived token
         const response = await fetch('/api/meta/business-login/store-token', {
           method: 'POST',
@@ -85,6 +80,7 @@ export default function BusinessCallbackPage() {
             accessToken: tokens.accessToken,
             longLivedToken: tokens.longLivedToken,
             expiresIn: tokens.expiresIn,
+            state: tokens.state,
           }),
         })
 
@@ -92,6 +88,10 @@ export default function BusinessCallbackPage() {
           const data = await response.json()
           throw new Error(data.error || 'Failed to store token')
         }
+
+        sessionStorage.removeItem('oauth_state')
+        localStorage.removeItem('oauth_state')
+        localStorage.removeItem('oauth_state_timestamp')
 
         setStatus('success')
         
@@ -123,8 +123,8 @@ export default function BusinessCallbackPage() {
         {status === 'success' && (
           <>
             <div className="text-green-600 text-5xl mb-4">✓</div>
-            <h2 className="text-xl font-semibold">Success!</h2>
-            <p className="text-gray-600 mt-2">Redirecting to your dashboard...</p>
+            <h2 className="text-xl font-semibold">Browser connection saved</h2>
+            <p className="text-gray-600 mt-2">Redirecting to your dashboard. Saved ad accounts may still need to be connected.</p>
           </>
         )}
 

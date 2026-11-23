@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { exchangeCodeForToken, MetaClient } from '@/lib/meta'
-import { supabaseAdmin } from '@/lib/supabase'
+import { verifyAuth } from '@/lib/auth-middleware'
+import { saveMetaAccounts } from '@/lib/save-meta-accounts'
 
 export async function GET(req: NextRequest) {
   try {
@@ -22,6 +23,14 @@ export async function GET(req: NextRequest) {
       )
     }
 
+    const auth = await verifyAuth(req)
+    if (!auth.authenticated || !auth.userId) {
+      return NextResponse.redirect(new URL('/connect?error=authentication_required', req.url))
+    }
+    if (process.env.METACOACH_META_OAUTH_ENABLED !== '1') {
+      return NextResponse.json({ error: 'Account connection is currently unavailable' }, { status: 503 })
+    }
+
     // Exchange code for short-lived token
     const tokenResponse = await exchangeCodeForToken(code)
 
@@ -34,51 +43,11 @@ export async function GET(req: NextRequest) {
     const expiresAt = new Date()
     expiresAt.setSeconds(expiresAt.getSeconds() + (longLivedToken.expires_in || 5184000)) // 60 days default
 
-    // Get the current user from auth session
-    // In production, you would get the authenticated user from the session
-    const supabase = supabaseAdmin()
-    const { data: { user }, error: sessionError } = await supabase.auth.getUser(
-      req.headers.get('authorization')?.replace('Bearer ', '') || undefined
-    )
-
-    if (!user && !req.cookies.get('auth_token')) {
-      // User must be authenticated to link accounts
-      return NextResponse.redirect(
-        new URL('/auth/login?redirect=/connect', req.url)
-      )
-    }
-
-    // Use the authenticated user's ID, or store as pending if not authenticated
-    const userId = user?.id
-
     // Get ad accounts for this connection
     const client = new MetaClient(longLivedToken.access_token)
     const adAccounts = await client.getAdAccounts()
 
-    // Store the access token and ad account info in Supabase (only if user is authenticated)
-    if (userId && adAccounts && adAccounts.length > 0) {
-      // Store each ad account in meta_accounts table
-      for (const account of adAccounts) {
-        const { error } = await supabase
-          .from('meta_accounts')
-          .upsert({
-            id: account.id,
-            user_id: userId,
-            account_name: account.name,
-            account_currency: account.currency,
-            account_timezone: account.timezone_name,
-            access_token: longLivedToken.access_token,
-            token_expires_at: expiresAt.toISOString(),
-            is_active: true,
-          }, {
-            onConflict: 'id'
-          })
-
-        if (error) {
-          console.error('Failed to store ad account:', error)
-        }
-      }
-    }
+    if (adAccounts?.length) await saveMetaAccounts(auth.userId, adAccounts, longLivedToken.access_token, expiresAt.toISOString())
 
     const response = NextResponse.redirect(new URL('/dashboard', req.url))
 
@@ -102,11 +71,9 @@ export async function GET(req: NextRequest) {
 
     return response
   } catch (error: any) {
-    console.error('OAuth callback error:', error)
-    const errorMessage = error?.message || 'Unknown error'
-    const detailsParam = encodeURIComponent(errorMessage)
+    console.error('OAuth callback failed')
     return NextResponse.redirect(
-      new URL(`/connect?error=callback_failed&details=${detailsParam}`, req.url)
+      new URL('/connect?error=callback_failed', req.url)
     )
   }
 }

@@ -1,21 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createProtectedRoute } from '@/lib/auth-middleware'
 
 // Store long-lived token from Business Login
-// Note: State verification is done client-side using sessionStorage
-export async function POST(req: NextRequest) {
+const handler = async (req: NextRequest) => {
   try {
-    const { longLivedToken, expiresIn } = await req.json()
+    if (process.env.METACOACH_META_OAUTH_ENABLED !== '1') {
+      return NextResponse.json({ error: 'Account connection is currently unavailable' }, { status: 503 })
+    }
+    const { longLivedToken, expiresIn, state } = await req.json()
+    const expectedState = req.cookies.get('business_oauth_state')?.value
+    if (typeof state !== 'string' || !expectedState || state !== expectedState) {
+      return NextResponse.json({ error: 'Invalid connection state' }, { status: 403 })
+    }
 
-    if (!longLivedToken) {
+    if (typeof longLivedToken !== 'string' || !longLivedToken || longLivedToken.length > 8192) {
       return NextResponse.json(
         { error: 'Missing long-lived token' },
         { status: 400 }
       )
     }
 
+    const seconds = expiresIn == null ? 5184000 : Number(expiresIn)
+    if (!Number.isInteger(seconds) || seconds < 1 || seconds > 5184000) {
+      return NextResponse.json({ error: 'Invalid token expiry' }, { status: 400 })
+    }
+
     // Calculate expiration (default 60 days)
     const expiresAt = new Date()
-    expiresAt.setSeconds(expiresAt.getSeconds() + (expiresIn || 5184000))
+    expiresAt.setSeconds(expiresAt.getSeconds() + seconds)
 
     // Store in httpOnly cookie
     const response = NextResponse.json({ success: true })
@@ -25,7 +37,7 @@ export async function POST(req: NextRequest) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: expiresIn || 5184000,
+      maxAge: seconds,
     })
     
     response.cookies.set('meta_token_expires', expiresAt.toISOString(), {
@@ -33,8 +45,9 @@ export async function POST(req: NextRequest) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: expiresIn || 5184000,
+      maxAge: seconds,
     })
+    response.cookies.delete('business_oauth_state')
 
     return response
   } catch (error: any) {
@@ -45,3 +58,5 @@ export async function POST(req: NextRequest) {
     )
   }
 }
+
+export const POST = createProtectedRoute(handler)

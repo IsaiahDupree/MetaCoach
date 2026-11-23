@@ -1,9 +1,15 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { nanoid } from 'nanoid'
 import { getBusinessLoginUrl } from '@/lib/meta-business-login'
+import { verifyAuth } from '@/lib/auth-middleware'
 
 // Start Facebook Login for Business flow
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const auth = await verifyAuth(req)
+  if (!auth.authenticated) return NextResponse.json({ error: 'Sign in to connect an account' }, { status: 401 })
+  if (process.env.METACOACH_META_OAUTH_ENABLED !== '1') {
+    return NextResponse.json({ error: 'Account connection is currently unavailable' }, { status: 503 })
+  }
   // Generate CSRF state
   const state = nanoid(32)
 
@@ -31,10 +37,14 @@ export async function GET() {
 </html>
 `
 
-  return new NextResponse(html, {
+  const response = new NextResponse(html, {
     status: 200,
     headers: {
       'Content-Type': 'text/html',
     },
   })
+  response.cookies.set('business_oauth_state', state, {
+    httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/', maxAge: 600,
+  })
+  return response
 }
