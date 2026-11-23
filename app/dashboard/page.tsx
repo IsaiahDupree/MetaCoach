@@ -20,25 +20,18 @@ interface Campaign {
 }
 
 interface MetricSummary {
-  spend: number
-  impressions: number
-  clicks: number
-  conversions: number
-  ctr: number
-  cpc: number
-  roas: number
-  trend?: {
-    spend: number
-    impressions: number
-    clicks: number
-  }
+  spend: number | null
+  impressions: number | null
+  clicks: number | null
+  ctr: number | null
+  roas: number | null
 }
 
 interface Recommendation {
   id: string
   title: string
   description: string
-  priority: 'high' | 'medium' | 'low'
+  priority?: 'high' | 'medium' | 'low'
   confidence_score: number
   estimated_impact: number
 }
@@ -51,6 +44,7 @@ export default function DashboardPage() {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [truncated, setTruncated] = useState(false)
   const [period, setPeriod] = useState<'7d' | '30d' | '90d'>('30d')
   const [selectedRecommendation, setSelectedRecommendation] = useState<Recommendation | null>(null)
   const [showModal, setShowModal] = useState(false)
@@ -59,12 +53,12 @@ export default function DashboardPage() {
   useEffect(() => {
     async function fetchAccounts() {
       try {
-        const res = await fetch('/api/meta/accounts')
+        const res = await fetch('/api/meta/accounts?cached=1')
         if (!res.ok) throw new Error('Failed to fetch accounts')
         const data = await res.json()
-        if (data.accounts && data.accounts.length > 0) {
-          setAccounts(data.accounts)
-          setSelectedAccount(data.accounts[0])
+        if (data.data && data.data.length > 0) {
+          setAccounts(data.data)
+          setSelectedAccount(data.data[0])
         }
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : 'Failed to load accounts')
@@ -76,55 +70,41 @@ export default function DashboardPage() {
   // Fetch campaigns and metrics when account is selected
   useEffect(() => {
     if (!selectedAccount) return
+    const controller = new AbortController()
 
     async function fetchData() {
       if (!selectedAccount) return
 
       setLoading(true)
       setError(null)
+      setMetrics(null)
+      setCampaigns([])
+      setRecommendations([])
+      setTruncated(false)
       try {
         const accountId = selectedAccount.id
-
-        // Fetch campaigns
-        const campaignsRes = await fetch(
-          `/api/meta/ads/campaigns?ad_account_id=${accountId}`
-        )
-        if (campaignsRes.ok) {
-          const campaignsData = await campaignsRes.json()
-          setCampaigns(campaignsData.campaigns || [])
-        }
-
-        // Fetch metrics
-        const daysBack = period === '7d' ? 7 : period === '30d' ? 30 : 90
-        const fromDate = new Date()
-        fromDate.setDate(fromDate.getDate() - daysBack)
-        const toDate = new Date()
-
-        const metricsRes = await fetch(
-          `/api/meta/metrics/fetch?account_id=${accountId}&from=${fromDate.toISOString()}&to=${toDate.toISOString()}`
-        )
-        if (metricsRes.ok) {
-          const metricsData = await metricsRes.json()
-          setMetrics(metricsData.summary)
-        }
-
-        // Fetch recommendations
-        const recsRes = await fetch(
-          `/api/recommendations/list?account_id=${accountId}`
-        )
-        if (recsRes.ok) {
-          const recsData = await recsRes.json()
-          setRecommendations(recsData.recommendations || [])
-        }
+        const params = new URLSearchParams({ account_id: accountId, period })
+        const [dashboardRes, recsRes] = await Promise.all([
+          fetch(`/api/meta/dashboard?${params}`, { signal: controller.signal }),
+          fetch(`/api/recommendations/list?${new URLSearchParams({ account_id: accountId })}`, { signal: controller.signal }),
+        ])
+        if (!dashboardRes.ok || !recsRes.ok) throw new Error('Could not load saved dashboard data')
+        const [dashboardData, recsData] = await Promise.all([dashboardRes.json(), recsRes.json()])
+        if (controller.signal.aborted) return
+        setCampaigns(dashboardData.campaigns)
+        setMetrics(dashboardData.summary)
+        setTruncated(dashboardData.truncated)
+        setRecommendations(recsData.recommendations)
 
       } catch (err: unknown) {
-        console.error('Error fetching data:', err)
+        if (!controller.signal.aborted) setError(err instanceof Error ? err.message : 'Could not load saved data')
       } finally {
-        setLoading(false)
+        if (!controller.signal.aborted) setLoading(false)
       }
     }
 
     fetchData()
+    return () => controller.abort()
   }, [selectedAccount, period])
 
   return (
@@ -161,6 +141,9 @@ export default function DashboardPage() {
               value={selectedAccount?.id || ''}
               onChange={(e) => {
                 const account = accounts.find((a) => a.id === e.target.value)
+                setMetrics(null)
+                setCampaigns([])
+                setRecommendations([])
                 setSelectedAccount(account || null)
               }}
             >
@@ -180,7 +163,10 @@ export default function DashboardPage() {
             <select
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               value={period}
-              onChange={(e) => setPeriod(e.target.value as '7d' | '30d' | '90d')}
+              onChange={(e) => {
+                setMetrics(null)
+                setPeriod(e.target.value as '7d' | '30d' | '90d')
+              }}
             >
               <option value="7d">Last 7 days</option>
               <option value="30d">Last 30 days</option>
@@ -222,7 +208,7 @@ export default function DashboardPage() {
                       <div>
                         <p className="text-gray-600 text-sm">Spend</p>
                         <p className="text-2xl font-bold text-gray-900">
-                          ${formatNumber(metrics.spend)}
+                          {metrics.spend === null ? '—' : `${selectedAccount.currency || ''} ${formatNumber(metrics.spend)}`}
                         </p>
                       </div>
                       <BarChart3 className="text-blue-500" size={32} />
@@ -234,7 +220,7 @@ export default function DashboardPage() {
                       <div>
                         <p className="text-gray-600 text-sm">Impressions</p>
                         <p className="text-2xl font-bold text-gray-900">
-                          {formatNumber(metrics.impressions)}
+                          {metrics.impressions === null ? '—' : formatNumber(metrics.impressions)}
                         </p>
                       </div>
                       <BarChart3 className="text-green-500" size={32} />
@@ -246,7 +232,7 @@ export default function DashboardPage() {
                       <div>
                         <p className="text-gray-600 text-sm">ROAS</p>
                         <p className="text-2xl font-bold text-gray-900">
-                          {metrics.roas.toFixed(2)}x
+                          {metrics.roas === null ? '—' : `${metrics.roas.toFixed(2)}x`}
                         </p>
                       </div>
                       <TrendingUp className="text-purple-500" size={32} />
@@ -258,7 +244,7 @@ export default function DashboardPage() {
                       <div>
                         <p className="text-gray-600 text-sm">CTR</p>
                         <p className="text-2xl font-bold text-gray-900">
-                          {(metrics.ctr * 100).toFixed(2)}%
+                          {metrics.ctr === null ? '—' : `${(metrics.ctr * 100).toFixed(2)}%`}
                         </p>
                       </div>
                       <BarChart3 className="text-orange-500" size={32} />
@@ -269,7 +255,9 @@ export default function DashboardPage() {
             </div>
 
             <div className="mb-8 rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900">
-              Daily performance charts are not available in the current build. Dashboard data availability depends on account access and the current application build.
+              Showing saved data; it may be out of date. Previously saved metrics may need reconciliation before they are relied on.
+              {truncated && ' Some saved results were omitted; performance totals are hidden if incomplete.'}
+              {!metrics && !truncated && ' No saved performance data is available for this period.'}
             </div>
 
             {/* Campaigns Table */}
@@ -318,7 +306,7 @@ export default function DashboardPage() {
                     ) : (
                       <tr>
                         <td colSpan={3} className="px-6 py-8 text-center text-gray-500">
-                          No campaigns found
+                          No saved campaigns found
                         </td>
                       </tr>
                     )}
@@ -364,7 +352,7 @@ export default function DashboardPage() {
                               Confidence: {(rec.confidence_score * 100).toFixed(0)}%
                             </span>
                             <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
-                              Impact: {(rec.estimated_impact * 100).toFixed(0)}%
+                              Impact: {rec.estimated_impact.toFixed(0)}%
                             </span>
                           </div>
                         </div>

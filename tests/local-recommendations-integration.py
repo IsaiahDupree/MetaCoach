@@ -34,7 +34,8 @@ with tempfile.TemporaryDirectory(prefix='matrix-rec-', dir='/tmp') as tmp:
         started = True
         sql = """
         CREATE ROLE matrix_test_reader NOLOGIN; GRANT matrix_test_reader TO matrix_test_owner;
-        CREATE TABLE meta_accounts (id text PRIMARY KEY, user_id text NOT NULL);
+        CREATE TABLE meta_accounts (id text PRIMARY KEY, user_id text NOT NULL, account_name text,
+          account_currency text, account_timezone text, is_active boolean NOT NULL DEFAULT true);
         CREATE TABLE meta_ad_sets (id text PRIMARY KEY, meta_account_id text NOT NULL REFERENCES meta_accounts(id));
         CREATE TABLE meta_ads (id text PRIMARY KEY, meta_ad_set_id text NOT NULL REFERENCES meta_ad_sets(id));
         CREATE TABLE meta_ad_performance (meta_ad_id text NOT NULL REFERENCES meta_ads(id), date date NOT NULL,
@@ -44,12 +45,18 @@ with tempfile.TemporaryDirectory(prefix='matrix-rec-', dir='/tmp') as tmp:
           meta_account_id text REFERENCES meta_accounts(id), recommendation_type text, title text,
           description text, confidence_score numeric, estimated_impact numeric, estimated_effort text,
           implementation_instructions text, is_implemented boolean);
-        INSERT INTO meta_accounts VALUES ('account-a','user-a'),('account-b','user-b');
-        INSERT INTO meta_ad_sets VALUES ('set-a','account-a'),('set-b','account-b');
-        INSERT INTO meta_ads VALUES ('ad-a','set-a'),('ad-b','set-b');
+        CREATE TABLE campaigns (id text PRIMARY KEY, meta_account_id text NOT NULL REFERENCES meta_accounts(id),
+          campaign_name text, campaign_status text, campaign_objective text);
+        INSERT INTO meta_accounts (id,user_id,account_name,account_currency) VALUES
+          ('account-a','user-a','Account A','USD'),('account-b','user-b','Account B','EUR'),('account-c','user-a','Account C','USD'),('account-d','user-a','Account D','USD');
+        INSERT INTO campaigns VALUES ('campaign-a','account-a','A campaign','ACTIVE','SALES'),
+          ('campaign-b','account-b','B campaign','PAUSED','SALES');
+        INSERT INTO meta_ad_sets VALUES ('set-a','account-a'),('set-b','account-b'),('set-d','account-d');
+        INSERT INTO meta_ads VALUES ('ad-a','set-a'),('ad-b','set-b'),('ad-d','set-d');
         INSERT INTO meta_ad_performance VALUES
           ('ad-a', CURRENT_DATE, 1000,20,100,2,300,2,5,50,3),
           ('ad-b', CURRENT_DATE, 1000,2,900,1,90,.2,450,900,.1);
+        INSERT INTO meta_ad_performance SELECT 'ad-d', CURRENT_DATE, 1, 1, 1, 1, 1, 1, 1, 1, 1 FROM generate_series(1,1001);
         GRANT USAGE ON SCHEMA public TO matrix_test_reader;
         GRANT SELECT,INSERT ON ALL TABLES IN SCHEMA public TO matrix_test_reader;
         GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA public TO matrix_test_reader;
@@ -96,6 +103,9 @@ with tempfile.TemporaryDirectory(prefix='matrix-rec-', dir='/tmp') as tmp:
         counts = run(psql + ['-At', '-c', "SELECT meta_account_id || ':' || count(*) FROM meta_coach_recommendations GROUP BY meta_account_id ORDER BY meta_account_id"]).stdout.splitlines()
         assert len(counts) == 2 and counts[0].startswith('account-a:') and counts[1].startswith('account-b:'), counts
         print('PASS: generated recommendations stored for both distinct local accounts')
+        dashboard = command[:-1] + ['tests/local-dashboard.mts']
+        result = run(dashboard, cwd=ROOT, env=env)
+        print(result.stdout.strip())
         run(psql + ['-c', 'REVOKE SELECT ON meta_ad_performance FROM matrix_test_reader'])
         result = run(command, cwd=ROOT, env={**env, 'EXPECT_STORAGE_ERROR': '1'})
         print(result.stdout.strip())

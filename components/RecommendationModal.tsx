@@ -6,7 +6,7 @@ export interface Recommendation {
   id: string
   title: string
   description: string
-  priority: 'high' | 'medium' | 'low'
+  priority?: 'high' | 'medium' | 'low'
   confidence_score: number
   estimated_impact: number
   estimated_effort?: 'low' | 'medium' | 'high'
@@ -48,9 +48,15 @@ export function RecommendationModal({
       text: 'text-blue-800',
       badge: 'bg-blue-100 text-blue-800',
     },
+    unknown: {
+      bg: 'bg-gray-50',
+      border: 'border-gray-200',
+      text: 'text-gray-800',
+      badge: 'bg-gray-100 text-gray-800',
+    },
   }
 
-  const colors = priorityColors[recommendation.priority]
+  const colors = priorityColors[recommendation.priority || 'unknown']
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -74,9 +80,9 @@ export function RecommendationModal({
                   <span
                     className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${colors.badge}`}
                   >
-                    {recommendation.priority.charAt(0).toUpperCase() +
-                      recommendation.priority.slice(1)}{' '}
-                    Priority
+                    {recommendation.priority
+                      ? `${recommendation.priority.charAt(0).toUpperCase()}${recommendation.priority.slice(1)} Priority`
+                      : 'Priority unavailable'}
                   </span>
                 </div>
                 {recommendation.recommendation_type && (
@@ -113,7 +119,7 @@ export function RecommendationModal({
                 <div className="bg-white rounded-lg p-4 border border-gray-200">
                   <p className="text-sm text-gray-600">Estimated Impact</p>
                   <p className="text-2xl font-bold text-gray-900 mt-1">
-                    {(recommendation.estimated_impact * 100).toFixed(0)}%
+                    {recommendation.estimated_impact.toFixed(0)}%
                   </p>
                 </div>
 
@@ -150,7 +156,7 @@ export function RecommendationModal({
                     Based on your current performance metrics, implementing this
                     recommendation could improve your results by approximately{' '}
                     <span className="font-semibold">
-                      {(recommendation.estimated_impact * 100).toFixed(0)}%
+                      {recommendation.estimated_impact.toFixed(0)}%
                     </span>
                     .
                   </p>

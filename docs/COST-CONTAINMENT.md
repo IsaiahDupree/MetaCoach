@@ -19,10 +19,14 @@ require a configured secret of at least 32 characters and project URL. They
 verify HS256, issuer, audience, expiry, subject and authenticated role. This
 matches the legacy symmetric-key design already in this source; projects using
 asymmetric signing keys require a separately verified JWKS/getClaims design.
-The existing browser login sets an `auth_token` cookie but this middleware only
-accepts a bearer header. Reconcile the entire session/CSRF flow before use;
-this change does not fix session revocation, all routes or account isolation
-across the entire application.
+The protected middleware accepts the login endpoint's signed `auth_token`
+cookie as well as explicit bearer tokens. Cookie-authenticated writes require
+an Origin equal to the request origin, and the three legacy GET routes with
+side effects reject cookie authentication. Their explicit bearer GET callers
+remain supported, but must be inventoried. This is not a complete CSRF,
+session-revocation, login/refresh or application-wide security review. Confirm
+trusted proxy/Host handling, exact signing mode, deployment origin, cookie
+settings and remaining routes before restoring browser access.
 
 Recommendation generation checks account ownership in its route and now
 filters performance through inner ad/ad-set relationships to the requested
@@ -33,11 +37,14 @@ cross-account access. The test schema is inferred from the source; the checked
 in migration does not create the ad tables. Verify the deployed relationships,
 grants, RLS and all other recommendation consumers before relying on this fix.
 
-Dashboard contracts also need repair: its account caller expects `accounts`
-while the inspected endpoint returns `data`; it calls the bulk fetch route on
-account/period changes but expects a summary that route does not return, and
-passes date parameter names that differ from the handler. Do not paper over
-these mismatches with fabricated zeroes. Reconcile real stored schemas and
-access controls, build a read-only cached view and require an authorized
-owned-hardware execution plan before restoring live sync. OpenAI calls,
-other Meta fan-out and EverReach integrations require separate review.
+The dashboard requests the saved account list and a new account-scoped saved
+campaign/performance view; it does not automatically call the live bulk sync
+or campaigns endpoints. The view checks ownership, bounds its queries and
+does not show a performance total when the rows were truncated. Missing
+metrics are shown as unavailable. Saved values can be stale, and earlier
+versions may have associated performance rows with the wrong ads; historic
+data needs reconciliation. Verify the real schema, query relationships,
+summary semantics, access controls, time zones and rendered application before
+relying on this candidate. A separate authorized owned-hardware execution plan
+is needed for live sync. OAuth, OpenAI, other Meta fan-out, account status,
+other callers and EverReach integrations require separate review.

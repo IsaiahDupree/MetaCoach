@@ -86,5 +86,5 @@ const handler = async (req: NextRequest & { userId?: string }) => {
   }
 }
 
-export const GET = createProtectedRoute(handler)
+export const GET = createProtectedRoute(handler, { allowCookieGet: false })
 export const POST = createProtectedRoute(handler)

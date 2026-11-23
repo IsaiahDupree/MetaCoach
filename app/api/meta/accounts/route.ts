@@ -14,6 +14,24 @@ const handler = async (req: NextRequest & { userId?: string }) => {
 
     const supabase = supabaseAdmin()
 
+    // The dashboard can display the saved account list without calling Meta.
+    if (req.nextUrl.searchParams.get('cached') === '1') {
+      const { data, error } = await supabase
+        .from('meta_accounts')
+        .select('id, account_name, account_currency, account_timezone')
+        .eq('user_id', req.userId)
+        .eq('is_active', true)
+
+      if (error) return NextResponse.json({ error: 'Failed to fetch accounts' }, { status: 500 })
+      const accounts = (data || []).map((account) => ({
+        id: account.id,
+        name: account.account_name,
+        currency: account.account_currency,
+        timezone: account.account_timezone,
+      }))
+      return NextResponse.json({ success: true, data: accounts, count: accounts.length })
+    }
+
     // Get user's linked Meta ad accounts from database
     const { data: accounts, error } = await supabase
       .from('meta_accounts')
