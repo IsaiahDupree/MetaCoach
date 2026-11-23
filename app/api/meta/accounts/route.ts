@@ -21,6 +21,8 @@ const handler = async (req: NextRequest & { userId?: string }) => {
         .select('id, account_name, account_currency, account_timezone')
         .eq('user_id', req.userId)
         .eq('is_active', true)
+        .order('account_name', { ascending: true })
+        .order('id', { ascending: true })
 
       if (error) return NextResponse.json({ error: 'Failed to fetch accounts' }, { status: 500 })
       const accounts = (data || []).map((account) => ({

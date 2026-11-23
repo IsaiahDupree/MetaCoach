@@ -44,8 +44,11 @@ does not show a performance total when the rows were truncated. Missing
 metrics are shown as unavailable. Saved values can be stale, and earlier
 versions may have associated performance rows with the wrong ads; historic
 data needs reconciliation. Verify the real schema, query relationships,
-summary semantics, access controls, time zones and rendered application before
-relying on this candidate. A separate authorized owned-hardware execution plan
+summary semantics, access controls, time zones and complete Next application
+before relying on this candidate. A local WebKit test rendered the actual
+dashboard component in a standalone shell against local database-backed
+handlers; it did not test Next routing, styling or the deployed application.
+A separate authorized owned-hardware execution plan
 is needed for live sync. OAuth, OpenAI, other Meta fan-out, account status,
 other callers and EverReach integrations require separate review.
 

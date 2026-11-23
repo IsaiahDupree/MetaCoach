@@ -33,7 +33,7 @@ try {
     return {status:res.status,data:await res.json()}
   }
   const list=await call('/accounts?cached=1')
-  assert.equal(list.status,200);assert.deepEqual(list.data.data.map((a:any)=>a.id).sort(),['account-a','account-c','account-d'])
+  assert.equal(list.status,200);assert.deepEqual(list.data.data.map((a:any)=>a.id),['account-a','account-c','account-d'])
   const a=await call('/dashboard?account_id=account-a&period=30d')
   assert.equal(a.status,200,JSON.stringify(a.data));assert.equal(a.data.summary.spend,100)
   assert.equal(a.data.summary.impressions,1000);assert.equal(a.data.summary.ctr,.02);assert.equal(a.data.summary.roas,3)

@@ -45,7 +45,7 @@ with tempfile.TemporaryDirectory(prefix='matrix-rec-', dir='/tmp') as tmp:
         CREATE TABLE meta_coach_recommendations (id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
           meta_account_id text REFERENCES meta_accounts(id), recommendation_type text, title text,
           description text, confidence_score numeric, estimated_impact numeric, estimated_effort text,
-          implementation_instructions text, is_implemented boolean);
+          implementation_instructions text, is_implemented boolean, created_at timestamptz DEFAULT now());
         CREATE TABLE campaigns (id text PRIMARY KEY, meta_account_id text NOT NULL REFERENCES meta_accounts(id),
           campaign_name text, campaign_status text, campaign_objective text);
         INSERT INTO meta_accounts (id,user_id,account_name,account_currency) VALUES
@@ -100,7 +100,7 @@ with tempfile.TemporaryDirectory(prefix='matrix-rec-', dir='/tmp') as tmp:
                'NEXT_PUBLIC_SUPABASE_URL': f'http://127.0.0.1:{proxy.server_port}',
                'SUPABASE_SERVICE_ROLE_KEY': 'local-only', 'SUPABASE_JWT_SECRET': secrets.token_hex(32)}
         command = ['/usr/bin/sandbox-exec', '-p', '(version 1)(allow default)(deny network-outbound)(allow network-outbound (remote ip "localhost:*"))',
-                   shutil.which('node'), '--import', 'tsx', 'tests/local-recommendations.mts']
+                   shutil.which('node'), '--import', '/tmp/authority-editorial-deps/node_modules/tsx/dist/loader.mjs', 'tests/local-recommendations.mts']
         result = run(command, cwd=ROOT, env=env)
         print(result.stdout.strip())
         counts = run(psql + ['-At', '-c', "SELECT meta_account_id || ':' || count(*) FROM meta_coach_recommendations GROUP BY meta_account_id ORDER BY meta_account_id"]).stdout.splitlines()
@@ -111,6 +111,9 @@ with tempfile.TemporaryDirectory(prefix='matrix-rec-', dir='/tmp') as tmp:
         print(result.stdout.strip())
         oauth = command[:-1] + ['tests/local-oauth.mts']
         result = run(oauth, cwd=ROOT, env={**env, 'PUBLIC_BASE_URL': 'http://localhost:4545', 'META_APP_ID': 'local-test-app'})
+        print(result.stdout.strip())
+        browser = command[:-1] + ['tests/local-dashboard-browser.mts']
+        result = run(browser, cwd=ROOT, env={**env, 'PLAYWRIGHT_BROWSERS_PATH': '/Users/isaiahdupree/Library/Caches/ms-playwright'})
         print(result.stdout.strip())
         run(psql + ['-c', 'REVOKE SELECT ON meta_ad_performance FROM matrix_test_reader'])
         result = run(command, cwd=ROOT, env={**env, 'EXPECT_STORAGE_ERROR': '1'})
